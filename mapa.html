@@ -11,51 +11,143 @@
     html, body { margin:0; padding:0; height:100%; }
     #map { width:100%; height:100vh; }
 
-    /* Painel de status (canto superior esquerdo) */
-    #msg{
-      position:fixed; left:12px; top:12px; z-index:9999;
-      background:#fff; padding:10px 12px; border-radius:12px;
-      box-shadow:0 6px 18px rgba(0,0,0,.15);
-      font-family: Arial, sans-serif; font-size:12px;
-      max-width:88%;
-      white-space: pre-line;
-    }
-
-    /* Card de preview (canto inferior esquerdo) */
-    #preview{
+    /* Painel (canto inferior esquerdo) recolhível */
+    #panel {
       position:fixed; left:12px; bottom:12px; z-index:9999;
-      width:300px;
-      background:#fff; padding:10px 12px; border-radius:14px;
-      box-shadow:0 10px 30px rgba(0,0,0,.18);
+      width:320px;
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 12px 34px rgba(0,0,0,.18);
       font-family: Arial, sans-serif;
       overflow:hidden;
+      border:1px solid rgba(0,0,0,.06);
     }
-    #preview .title{
-      font-size:12px; font-weight:700; color:#111;
-      display:flex; gap:8px; align-items:center;
-      margin-bottom:8px;
+    #panelHeader{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px;
+      background:linear-gradient(180deg, #ffffff, #fbfbfb);
+      border-bottom:1px solid rgba(0,0,0,.06);
+      cursor:pointer;
+      user-select:none;
     }
-    #preview .tag{
-      padding:2px 8px; border-radius:999px; font-weight:700; font-size:11px;
-      color:#fff; display:inline-block;
+    #panelHeader .left{
+      display:flex; align-items:center; gap:10px;
+      min-width:0;
     }
-    #preview .sub{
-      font-size:11px; color:#444; margin:0 0 8px 0;
+    .tag{
+      display:inline-block;
+      padding:2px 10px;
+      border-radius:999px;
+      font-weight:700;
+      font-size:11px;
+      color:#fff;
+      flex:0 0 auto;
     }
-    #preview img{
+    #pTitle{
+      font-weight:800;
+      font-size:12px;
+      color:#111;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    #panelHeader .chev{
+      font-size:18px;
+      color:#444;
+      line-height:1;
+      padding:4px 8px;
+      border-radius:10px;
+      background:#f2f2f2;
+    }
+
+    #panelBody{
+      padding:10px 12px 12px;
+      display:block;
+    }
+    #pSub{
+      margin:0 0 10px 0;
+      font-size:11px;
+      color:#444;
+      white-space:pre-line;
+    }
+    #pImg{
       width:100%;
-      height:160px;
+      height:165px;
       object-fit:cover;
-      border-radius:12px;
-      border:1px solid rgba(0,0,0,.08);
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,0.08);
       background:#f3f3f3;
       display:block;
     }
-    #preview .hint{
-      margin-top:8px; font-size:11px; color:#666;
+    #panelActions{
+      display:flex; gap:8px; margin-top:10px;
+    }
+    .btn{
+      flex:1 1 auto;
+      padding:9px 10px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,0.10);
+      background:#fff;
+      font-weight:700;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .btn:hover{ background:#f7f7f7; }
+
+    /* Chip (canto inferior direito) + Drawer list */
+    #chip {
+      position:fixed; right:12px; bottom:12px; z-index:9999;
+      background:#111;
+      color:#fff;
+      border-radius:999px;
+      padding:10px 14px;
+      font-family: Arial, sans-serif;
+      font-weight:800;
+      font-size:12px;
+      cursor:pointer;
+      box-shadow:0 12px 34px rgba(0,0,0,.22);
+      user-select:none;
+    }
+    #drawer {
+      position:fixed; right:12px; bottom:56px; z-index:9999;
+      width:320px;
+      max-height:60vh;
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 12px 34px rgba(0,0,0,.18);
+      border:1px solid rgba(0,0,0,.06);
+      overflow:hidden;
+      display:none;
+      font-family: Arial, sans-serif;
+    }
+    #drawerHeader{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px;
+      background:linear-gradient(180deg, #ffffff, #fbfbfb);
+      border-bottom:1px solid rgba(0,0,0,.06);
+      font-weight:900;
+      font-size:12px;
+    }
+    #drawerList{
+      overflow:auto;
+      max-height:calc(60vh - 44px);
+    }
+    .row{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(0,0,0,.06);
+      cursor:pointer;
+    }
+    .row:hover{ background:#f7f7f7; }
+    .row .name{
+      font-size:12px; font-weight:800; color:#111;
+      line-height:1.2;
+    }
+    .row .meta{
+      font-size:11px; color:#555; margin-top:2px;
     }
 
-    /* Tooltip bonita */
+    /* Tooltip das tags no mapa */
     .zone-tooltip{
       background: rgba(255,255,255,0.95);
       border: 1px solid rgba(0,0,0,0.12);
@@ -67,44 +159,53 @@
       color: #222;
     }
     .zone-tooltip .tag{
-      display:inline-block;
       padding: 2px 8px;
-      border-radius: 999px;
-      font-weight: 700;
       font-size: 11px;
-      color: #fff;
       margin-right: 6px;
-      vertical-align: middle;
     }
+
+    /* Estado minimizado do painel */
+    .min #panelBody{ display:none; }
+    .min #panelHeader{ border-bottom:none; }
+
   </style>
 </head>
 
 <body>
   <div id="map"></div>
-  <div id="msg">Carregando…</div>
 
-  <div id="preview">
-    <div class="title">
-      <span class="tag" style="background:#999;">P?</span>
-      <span id="pName">Nenhuma zona selecionada</span>
+  <!-- Painel preview (recolhível) -->
+  <div id="panel" class="min">
+    <div id="panelHeader" title="Clique para expandir/recolher">
+      <div class="left">
+        <span id="pTag" class="tag" style="background:#777;">P?</span>
+        <div id="pTitle">Nenhuma zona selecionada</div>
+      </div>
+      <div class="chev" id="chev">⌃</div>
     </div>
-    <p class="sub" id="pSub">Clique em uma mancha (overlay) para ver a prévia.</p>
-    <img id="pImg" alt="Prévia do overlay" />
-    <div class="hint">Dica: use o controle no canto superior direito para alternar Satélite/Rua.</div>
+
+    <div id="panelBody">
+      <p id="pSub">Clique em uma mancha (overlay) ou escolha na lista.</p>
+      <img id="pImg" alt="Prévia do overlay" />
+      <div id="panelActions">
+        <button class="btn" id="btnAll">Mostrar todas</button>
+        <button class="btn" id="btnList">Lista de zonas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chip de quantidade + lista -->
+  <div id="chip">0 zonas</div>
+
+  <div id="drawer">
+    <div id="drawerHeader">
+      <div id="drawerTitle">Zonas de cobertura</div>
+      <div style="cursor:pointer; padding:4px 8px; border-radius:10px; background:#f2f2f2;" id="drawerClose">✕</div>
+    </div>
+    <div id="drawerList"></div>
   </div>
 
   <script>
-    const msg = document.getElementById("msg");
-    const pName = document.getElementById("pName");
-    const pSub  = document.getElementById("pSub");
-    const pImg  = document.getElementById("pImg");
-    const pTag  = document.querySelector("#preview .tag");
-
-    // Debug: se der erro JS, mostra na caixinha
-    window.onerror = function (m, u, l, c) {
-      msg.textContent = "ERRO JS: " + m + " (linha " + l + ")";
-    };
-
     function getParam(name) {
       return new URLSearchParams(window.location.search).get(name);
     }
@@ -121,6 +222,23 @@
       return "#B00020";
     }
 
+    // UI refs
+    const panel = document.getElementById("panel");
+    const panelHeader = document.getElementById("panelHeader");
+    const chev = document.getElementById("chev");
+    const pTag = document.getElementById("pTag");
+    const pTitle = document.getElementById("pTitle");
+    const pSub = document.getElementById("pSub");
+    const pImg = document.getElementById("pImg");
+
+    const chip = document.getElementById("chip");
+    const drawer = document.getElementById("drawer");
+    const drawerList = document.getElementById("drawerList");
+    const drawerClose = document.getElementById("drawerClose");
+
+    const btnAll = document.getElementById("btnAll");
+    const btnList = document.getElementById("btnList");
+
     // Centro opcional (vem do Power Apps)
     const lat = toNum(getParam("lat"));
     const lon = toNum(getParam("lon"));
@@ -131,7 +249,7 @@
       13
     );
 
-    // Base layers: Satélite + Rua
+    // Base layers (satélite + rua)
     const rua = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
       maxZoom: 19
@@ -142,28 +260,35 @@
       { attribution: "Tiles © Esri", maxZoom: 19 }
     );
 
-    // default: satélite
     sat.addTo(map);
-
     L.control.layers(
       { "Satélite (Esri)": sat, "Rua (OSM)": rua },
       null,
       { position: "topright" }
     ).addTo(map);
 
+    // Ponto azul SEMPRE que vier lat/lon (mesmo fora)
+    if (!isNaN(lat) && !isNaN(lon)) {
+      L.circleMarker([lat, lon], {
+        radius: 7,
+        color: "#0B5FFF",
+        weight: 2,
+        fillColor: "#0B5FFF",
+        fillOpacity: 0.95
+      }).addTo(map);
+    }
+
     // -------------------------
     // 1) Tenta modo novo: ovl
     // -------------------------
     let overlays = [];
     const ovlParam = getParam("ovl");
-
     if (ovlParam) {
       try {
         overlays = JSON.parse(decodeURIComponent(ovlParam));
         if (!Array.isArray(overlays)) overlays = [];
       } catch (e) {
         overlays = [];
-        msg.textContent = "Falha ao ler ovl (JSON). Verifique EncodeUrl no Power Apps.";
       }
     }
 
@@ -188,69 +313,155 @@
       }
     }
 
-    // -------------------------
-    // Render
-    // -------------------------
-    if (overlays.length === 0) {
-      msg.textContent = "Sem parâmetros válidos. Use ovl=... (lista) ou img/north/south/east/west.";
-    } else {
-      const group = L.featureGroup();
-      let carregadas = 0;
-      msg.textContent = "Recebi " + overlays.length + " overlay(s). Carregando…";
+    // Estado + camadas
+    const group = L.featureGroup();
+    const overlayLayers = []; // { layer, data, tooltipMarker }
+    let selectedIndex = -1;
 
-      // ponto consultado
-      if (!isNaN(lat) && !isNaN(lon)) {
-        L.circleMarker([lat, lon], { radius: 7, weight: 2, fillOpacity: 0.9 }).addTo(map);
+    function setPanelMin(min){
+      if(min){
+        panel.classList.add("min");
+        chev.textContent = "⌃";
+      } else {
+        panel.classList.remove("min");
+        chev.textContent = "⌄";
       }
+    }
 
+    function openDrawer(open){
+      drawer.style.display = open ? "block" : "none";
+    }
+
+    function renderChip(){
+      chip.textContent = `${overlayLayers.length} zona${overlayLayers.length === 1 ? "" : "s"}`;
+    }
+
+    function updatePreview(data){
+      if(!data){
+        pTag.style.background = "#777";
+        pTag.textContent = "P?";
+        pTitle.textContent = "Nenhuma zona selecionada";
+        pSub.textContent = "Clique em uma mancha (overlay) ou escolha na lista.";
+        pImg.removeAttribute("src");
+        return;
+      }
+      const rank = Number(data.rank || 0);
+      pTag.style.background = cor(rank);
+      pTag.textContent = "P" + rank;
+      pTitle.textContent = data.name || "Zona";
+      pSub.textContent =
+        `Prioridade: P${rank}\n` +
+        `N ${data.north} | S ${data.south}\n` +
+        `E ${data.east} | W ${data.west}`;
+      pImg.src = data.img;
+    }
+
+    function showAll(){
+      selectedIndex = -1;
+      overlayLayers.forEach(o => {
+        o.layer.setOpacity(0.62);
+        try { o.layer.bringToBack(); } catch(e){}
+      });
+      updatePreview(null);
+      setPanelMin(true);
+    }
+
+    function selectOverlay(i, fit=false){
+      if(i < 0 || i >= overlayLayers.length) return;
+      selectedIndex = i;
+
+      overlayLayers.forEach((o, idx) => {
+        o.layer.setOpacity(idx === i ? 0.85 : 0.25);
+        if(idx === i){
+          try { o.layer.bringToFront(); } catch(e){}
+        }
+      });
+
+      const data = overlayLayers[i].data;
+      updatePreview(data);
+      setPanelMin(false);
+
+      if(fit){
+        const b = [[Number(data.south), Number(data.west)], [Number(data.north), Number(data.east)]];
+        map.fitBounds(b, { padding:[25,25] });
+      }
+    }
+
+    // Build drawer list
+    function buildList(){
+      drawerList.innerHTML = "";
+      overlayLayers.forEach((o, idx) => {
+        const d = o.data;
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <span class="tag" style="background:${cor(d.rank)}">P${d.rank}</span>
+          <div style="min-width:0;">
+            <div class="name">${d.name || "Zona"}</div>
+            <div class="meta">BBox: ${d.south}, ${d.west} → ${d.north}, ${d.east}</div>
+          </div>
+        `;
+        row.onclick = () => {
+          selectOverlay(idx, true);
+          openDrawer(false);
+        };
+        drawerList.appendChild(row);
+      });
+    }
+
+    // Eventos UI
+    panelHeader.onclick = () => setPanelMin(!panel.classList.contains("min") ? true : false);
+    chip.onclick = () => { openDrawer(drawer.style.display !== "block"); };
+    drawerClose.onclick = () => openDrawer(false);
+    btnAll.onclick = (e) => { e.stopPropagation(); showAll(); };
+    btnList.onclick = (e) => { e.stopPropagation(); openDrawer(true); };
+
+    // Render overlays
+    if (overlays.length === 0) {
+      // Mesmo sem overlay, mantém ponto azul e deixa chip 0
+      renderChip();
+      updatePreview(null);
+      setPanelMin(true);
+    } else {
       overlays.forEach((o, idx) => {
         const north = Number(o.north), south = Number(o.south), east = Number(o.east), west = Number(o.west);
         const imgUrl = o.img;
         const nome = String(o.name || ("Zona " + (idx+1)));
         const rank = Number(o.rank || (idx+1));
 
-        if (!imgUrl || [north,south,east,west].some(v => Number.isNaN(v))) {
-          msg.textContent = "Overlay inválido detectado (faltando img ou bounds numéricos).";
-          return;
-        }
+        if (!imgUrl || [north,south,east,west].some(v => Number.isNaN(v))) return;
+
+        const data = { img: imgUrl, north, south, east, west, name: nome, rank };
 
         const bounds = [[south, west], [north, east]];
-
-        const overlay = L.imageOverlay(imgUrl, bounds, { opacity: 0.62, interactive: true })
+        const layer = L.imageOverlay(imgUrl, bounds, { opacity: 0.62, interactive: true })
           .addTo(map)
-          .on("error", () => {
-            msg.textContent = "Falhou ao carregar algum overlay. Teste abrir a URL da imagem direto no navegador.";
-          })
-          .on("load", () => {
-            carregadas++;
-            msg.textContent = "Overlays carregados: " + carregadas + "/" + overlays.length;
-          })
-          .on("click", () => {
-            // Atualiza preview ao clicar na mancha
-            pTag.style.background = cor(rank);
-            pTag.textContent = "P" + rank;
-            pName.textContent = nome;
-            pSub.textContent = `Bounds: N ${north} | S ${south} | E ${east} | W ${west}`;
-            pImg.src = imgUrl;
-          });
+          .on("click", () => selectOverlay(idx));
 
-        group.addLayer(overlay);
+        group.addLayer(layer);
 
         // Tooltip/Tag no centro do bbox
         const cLat = (south + north) / 2;
         const cLon = (west + east) / 2;
         const html = `<span class="tag" style="background:${cor(rank)}">P${rank}</span>${nome}`;
 
-        L.marker([cLat, cLon], { opacity: 0 })
+        const tooltipMarker = L.marker([cLat, cLon], { opacity: 0 })
           .addTo(map)
           .bindTooltip(html, {
             permanent: true,
             direction: "center",
             className: "zone-tooltip"
           });
+
+        overlayLayers.push({ layer, data, tooltipMarker });
       });
 
-      // Zoom para todas
+      renderChip();
+      buildList();
+      updatePreview(null);
+      setPanelMin(true);
+
+      // Ajusta o mapa para ver todas as manchas (se tiver)
       if (group.getLayers().length > 0) {
         map.fitBounds(group.getBounds(), { padding: [25, 25] });
       }
