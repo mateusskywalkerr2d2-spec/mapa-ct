@@ -11,6 +11,7 @@
     html, body { margin:0; padding:0; height:100%; }
     #map { width:100%; height:100vh; }
 
+    /* Painel de status (canto superior esquerdo) */
     #msg{
       position:fixed; left:12px; top:12px; z-index:9999;
       background:#fff; padding:10px 12px; border-radius:12px;
@@ -20,6 +21,41 @@
       white-space: pre-line;
     }
 
+    /* Card de preview (canto inferior esquerdo) */
+    #preview{
+      position:fixed; left:12px; bottom:12px; z-index:9999;
+      width:300px;
+      background:#fff; padding:10px 12px; border-radius:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.18);
+      font-family: Arial, sans-serif;
+      overflow:hidden;
+    }
+    #preview .title{
+      font-size:12px; font-weight:700; color:#111;
+      display:flex; gap:8px; align-items:center;
+      margin-bottom:8px;
+    }
+    #preview .tag{
+      padding:2px 8px; border-radius:999px; font-weight:700; font-size:11px;
+      color:#fff; display:inline-block;
+    }
+    #preview .sub{
+      font-size:11px; color:#444; margin:0 0 8px 0;
+    }
+    #preview img{
+      width:100%;
+      height:160px;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.08);
+      background:#f3f3f3;
+      display:block;
+    }
+    #preview .hint{
+      margin-top:8px; font-size:11px; color:#666;
+    }
+
+    /* Tooltip bonita */
     .zone-tooltip{
       background: rgba(255,255,255,0.95);
       border: 1px solid rgba(0,0,0,0.12);
@@ -30,7 +66,7 @@
       font-size: 12px;
       color: #222;
     }
-    .tag{
+    .zone-tooltip .tag{
       display:inline-block;
       padding: 2px 8px;
       border-radius: 999px;
@@ -47,9 +83,24 @@
   <div id="map"></div>
   <div id="msg">Carregando…</div>
 
+  <div id="preview">
+    <div class="title">
+      <span class="tag" style="background:#999;">P?</span>
+      <span id="pName">Nenhuma zona selecionada</span>
+    </div>
+    <p class="sub" id="pSub">Clique em uma mancha (overlay) para ver a prévia.</p>
+    <img id="pImg" alt="Prévia do overlay" />
+    <div class="hint">Dica: use o controle no canto superior direito para alternar Satélite/Rua.</div>
+  </div>
+
   <script>
-    // Debug: se der erro JS, mostra na caixinha
     const msg = document.getElementById("msg");
+    const pName = document.getElementById("pName");
+    const pSub  = document.getElementById("pSub");
+    const pImg  = document.getElementById("pImg");
+    const pTag  = document.querySelector("#preview .tag");
+
+    // Debug: se der erro JS, mostra na caixinha
     window.onerror = function (m, u, l, c) {
       msg.textContent = "ERRO JS: " + m + " (linha " + l + ")";
     };
@@ -80,11 +131,25 @@
       13
     );
 
-    // Base (rua) — simples pra teste
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    // Base layers: Satélite + Rua
+    const rua = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
       maxZoom: 19
-    }).addTo(map);
+    });
+
+    const sat = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { attribution: "Tiles © Esri", maxZoom: 19 }
+    );
+
+    // default: satélite
+    sat.addTo(map);
+
+    L.control.layers(
+      { "Satélite (Esri)": sat, "Rua (OSM)": rua },
+      null,
+      { position: "topright" }
+    ).addTo(map);
 
     // -------------------------
     // 1) Tenta modo novo: ovl
@@ -124,17 +189,19 @@
     }
 
     // -------------------------
-    // 3) Render
+    // Render
     // -------------------------
     if (overlays.length === 0) {
       msg.textContent = "Sem parâmetros válidos. Use ovl=... (lista) ou img/north/south/east/west.";
     } else {
-      // TRAVA PRA TESTE
-      overlays = overlays.slice(0, 20);
-
       const group = L.featureGroup();
       let carregadas = 0;
       msg.textContent = "Recebi " + overlays.length + " overlay(s). Carregando…";
+
+      // ponto consultado
+      if (!isNaN(lat) && !isNaN(lon)) {
+        L.circleMarker([lat, lon], { radius: 7, weight: 2, fillOpacity: 0.9 }).addTo(map);
+      }
 
       overlays.forEach((o, idx) => {
         const north = Number(o.north), south = Number(o.south), east = Number(o.east), west = Number(o.west);
@@ -157,6 +224,14 @@
           .on("load", () => {
             carregadas++;
             msg.textContent = "Overlays carregados: " + carregadas + "/" + overlays.length;
+          })
+          .on("click", () => {
+            // Atualiza preview ao clicar na mancha
+            pTag.style.background = cor(rank);
+            pTag.textContent = "P" + rank;
+            pName.textContent = nome;
+            pSub.textContent = `Bounds: N ${north} | S ${south} | E ${east} | W ${west}`;
+            pImg.src = imgUrl;
           });
 
         group.addLayer(overlay);
@@ -179,13 +254,7 @@
       if (group.getLayers().length > 0) {
         map.fitBounds(group.getBounds(), { padding: [25, 25] });
       }
-
-      // Marca o ponto consultado (se veio)
-      if (!isNaN(lat) && !isNaN(lon)) {
-        L.circleMarker([lat, lon], { radius: 7, weight: 2, fillOpacity: 0.9 }).addTo(map);
-      }
     }
   </script>
 </body>
 </html>
-
