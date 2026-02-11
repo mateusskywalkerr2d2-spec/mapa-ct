@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>Mapa de Cobertura LTE</title>
 
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -11,7 +12,9 @@
     html, body { margin:0; padding:0; height:100%; }
     #map { width:100%; height:100vh; }
 
-    /* Painel (canto inferior esquerdo) recolhível */
+    /* ============================
+       PAINEL PREVIEW (recolhível)
+       ============================ */
     #panel {
       position:fixed; left:12px; bottom:12px; z-index:9999;
       width:320px;
@@ -22,6 +25,7 @@
       overflow:hidden;
       border:1px solid rgba(0,0,0,.06);
     }
+
     #panelHeader{
       display:flex; align-items:center; justify-content:space-between;
       padding:10px 12px;
@@ -30,10 +34,12 @@
       cursor:pointer;
       user-select:none;
     }
+
     #panelHeader .left{
       display:flex; align-items:center; gap:10px;
       min-width:0;
     }
+
     .tag{
       display:inline-block;
       padding:2px 10px;
@@ -43,6 +49,7 @@
       color:#fff;
       flex:0 0 auto;
     }
+
     #pTitle{
       font-weight:800;
       font-size:12px;
@@ -51,6 +58,7 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
+
     #panelHeader .chev{
       font-size:18px;
       color:#444;
@@ -64,12 +72,14 @@
       padding:10px 12px 12px;
       display:block;
     }
+
     #pSub{
       margin:0 0 10px 0;
       font-size:11px;
       color:#444;
       white-space:pre-line;
     }
+
     #pImg{
       width:100%;
       height:165px;
@@ -79,9 +89,11 @@
       background:#f3f3f3;
       display:block;
     }
+
     #panelActions{
       display:flex; gap:8px; margin-top:10px;
     }
+
     .btn{
       flex:1 1 auto;
       padding:9px 10px;
@@ -94,7 +106,13 @@
     }
     .btn:hover{ background:#f7f7f7; }
 
-    /* Chip (canto inferior direito) + Drawer list */
+    /* Estado minimizado (painel vira "botão") */
+    .min #panelBody{ display:none; }
+    .min #panelHeader{ border-bottom:none; }
+
+    /* ============================
+       CHIP (contador) + DRAWER LIST
+       ============================ */
     #chip {
       position:fixed; right:12px; bottom:12px; z-index:9999;
       background:#111;
@@ -108,9 +126,10 @@
       box-shadow:0 12px 34px rgba(0,0,0,.22);
       user-select:none;
     }
+
     #drawer {
       position:fixed; right:12px; bottom:56px; z-index:9999;
-      width:320px;
+      width:340px;
       max-height:60vh;
       background:#fff;
       border-radius:16px;
@@ -120,6 +139,7 @@
       display:none;
       font-family: Arial, sans-serif;
     }
+
     #drawerHeader{
       display:flex; align-items:center; justify-content:space-between;
       padding:10px 12px;
@@ -128,10 +148,12 @@
       font-weight:900;
       font-size:12px;
     }
+
     #drawerList{
       overflow:auto;
       max-height:calc(60vh - 44px);
     }
+
     .row{
       display:flex; gap:10px; align-items:flex-start;
       padding:10px 12px;
@@ -139,15 +161,35 @@
       cursor:pointer;
     }
     .row:hover{ background:#f7f7f7; }
+
     .row .name{
       font-size:12px; font-weight:800; color:#111;
       line-height:1.2;
     }
     .row .meta{
       font-size:11px; color:#555; margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:240px;
     }
 
-    /* Tooltip das tags no mapa */
+    /* botão pequeno (📌) dentro da linha */
+    .miniBtn{
+      border:none;
+      background:#f2f2f2;
+      border-radius:10px;
+      padding:6px 8px;
+      cursor:pointer;
+      font-size:14px;
+      line-height:1;
+    }
+    .miniBtn:hover{ background:#e9e9e9; }
+
+    /* ============================
+       TOOLTIP do Leaflet (tag P#)
+       - vamos mostrar só na selecionada
+       ============================ */
     .zone-tooltip{
       background: rgba(255,255,255,0.95);
       border: 1px solid rgba(0,0,0,0.12);
@@ -163,11 +205,6 @@
       font-size: 11px;
       margin-right: 6px;
     }
-
-    /* Estado minimizado do painel */
-    .min #panelBody{ display:none; }
-    .min #panelHeader{ border-bottom:none; }
-
   </style>
 </head>
 
@@ -194,7 +231,7 @@
     </div>
   </div>
 
-  <!-- Chip de quantidade + lista -->
+  <!-- Chip contador e drawer -->
   <div id="chip">0 zonas</div>
 
   <div id="drawer">
@@ -206,6 +243,9 @@
   </div>
 
   <script>
+    /* =========================================================
+       Helpers (querystring, número, cor por prioridade)
+       ========================================================= */
     function getParam(name) {
       return new URLSearchParams(window.location.search).get(name);
     }
@@ -222,7 +262,9 @@
       return "#B00020";
     }
 
-    // UI refs
+    /* =========================================================
+       DOM refs
+       ========================================================= */
     const panel = document.getElementById("panel");
     const panelHeader = document.getElementById("panelHeader");
     const chev = document.getElementById("chev");
@@ -239,17 +281,19 @@
     const btnAll = document.getElementById("btnAll");
     const btnList = document.getElementById("btnList");
 
-    // Centro opcional (vem do Power Apps)
+    /* =========================================================
+       Inicialização do mapa
+       - Satélite + Rua (toggle)
+       - Ponto azul sempre (se vier lat/lon)
+       ========================================================= */
     const lat = toNum(getParam("lat"));
     const lon = toNum(getParam("lon"));
 
-    // Mapa
     const map = L.map("map").setView(
       (!isNaN(lat) && !isNaN(lon)) ? [lat, lon] : [-6.05, -50.17],
       13
     );
 
-    // Base layers (satélite + rua)
     const rua = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
       maxZoom: 19
@@ -260,14 +304,16 @@
       { attribution: "Tiles © Esri", maxZoom: 19 }
     );
 
+    // default: satélite (mais bonito)
     sat.addTo(map);
+
     L.control.layers(
       { "Satélite (Esri)": sat, "Rua (OSM)": rua },
       null,
       { position: "topright" }
     ).addTo(map);
 
-    // Ponto azul SEMPRE que vier lat/lon (mesmo fora)
+    // Ponto azul SEMPRE (mesmo fora da cobertura)
     if (!isNaN(lat) && !isNaN(lon)) {
       L.circleMarker([lat, lon], {
         radius: 7,
@@ -278,11 +324,14 @@
       }).addTo(map);
     }
 
-    // -------------------------
-    // 1) Tenta modo novo: ovl
-    // -------------------------
+    /* =========================================================
+       Leitura dos overlays
+       - modo novo: ovl (JSON URL-encoded)
+       - fallback: modo antigo (img,north,south,east,west,name)
+       ========================================================= */
     let overlays = [];
     const ovlParam = getParam("ovl");
+
     if (ovlParam) {
       try {
         overlays = JSON.parse(decodeURIComponent(ovlParam));
@@ -292,9 +341,6 @@
       }
     }
 
-    // -------------------------
-    // 2) Fallback modo antigo
-    // -------------------------
     if (overlays.length === 0) {
       const imgUrl = getParam("img");
       const north = toNum(getParam("north"));
@@ -313,11 +359,21 @@
       }
     }
 
-    // Estado + camadas
+    /* =========================================================
+       Estado / estruturas
+       ========================================================= */
     const group = L.featureGroup();
-    const overlayLayers = []; // { layer, data, tooltipMarker }
+    const overlayLayers = []; // [{ layer, data, tooltipMarker }]
     let selectedIndex = -1;
 
+    // Ajustes UX de opacidade
+    const OPACITY_ALL = 0.18;      // quando "Mostrar todas"
+    const OPACITY_SELECTED = 0.85; // selecionada em foco
+    const OPACITY_OTHERS = 0.0;    // SOLO: outras somem (0)
+
+    /* =========================================================
+       Funções de UI
+       ========================================================= */
     function setPanelMin(min){
       if(min){
         panel.classList.add("min");
@@ -345,6 +401,7 @@
         pImg.removeAttribute("src");
         return;
       }
+
       const rank = Number(data.rank || 0);
       pTag.style.background = cor(rank);
       pTag.textContent = "P" + rank;
@@ -356,24 +413,53 @@
       pImg.src = data.img;
     }
 
+    /* =========================================================
+       Mostrar todas (modo "visão geral")
+       - volta as opacidades para um valor leve
+       - limpa seleção
+       - esconde tooltips (menos poluído)
+       ========================================================= */
     function showAll(){
       selectedIndex = -1;
+
       overlayLayers.forEach(o => {
-        o.layer.setOpacity(0.62);          //TRANSPARENCIA OVERLAY
+        o.layer.setOpacity(OPACITY_ALL);
         try { o.layer.bringToBack(); } catch(e){}
+
+        // esconde tooltip
+        if (o.tooltipMarker) {
+          try { o.tooltipMarker.closeTooltip(); } catch(e){}
+        }
       });
+
       updatePreview(null);
       setPanelMin(true);
     }
 
-    function selectOverlay(i, fit=false){  //função do overlay
+    /* =========================================================
+       Selecionar overlay (modo SOLO)
+       - selecionada fica forte
+       - demais somem
+       - tooltip aparece só na selecionada
+       - atualiza preview
+       - (opcional) fitBounds
+       ========================================================= */
+    function selectOverlay(i, fit=false){
       if(i < 0 || i >= overlayLayers.length) return;
       selectedIndex = i;
 
       overlayLayers.forEach((o, idx) => {
-        o.layer.setOpacity(idx === i ? 0.85 : 0.00);   //Opacidade quando volta a mostrar tudo.
+        o.layer.setOpacity(idx === i ? OPACITY_SELECTED : OPACITY_OTHERS);
+
         if(idx === i){
           try { o.layer.bringToFront(); } catch(e){}
+          if (o.tooltipMarker) {
+            try { o.tooltipMarker.openTooltip(); } catch(e){}
+          }
+        } else {
+          if (o.tooltipMarker) {
+            try { o.tooltipMarker.closeTooltip(); } catch(e){}
+          }
         }
       });
 
@@ -387,38 +473,75 @@
       }
     }
 
-    // Build drawer list
+    /* =========================================================
+       Focus (📌) - só centraliza no mapa sem selecionar
+       ========================================================= */
+    function focusOverlay(i){
+      if(i < 0 || i >= overlayLayers.length) return;
+      const d = overlayLayers[i].data;
+      const b = [[Number(d.south), Number(d.west)], [Number(d.north), Number(d.east)]];
+      map.fitBounds(b, { padding:[25,25] });
+    }
+
+    /* =========================================================
+       Drawer List
+       - clique na linha = selectOverlay + fitBounds + fecha lista
+       - 📌 = focusOverlay sem selecionar
+       ========================================================= */
     function buildList(){
       drawerList.innerHTML = "";
+
       overlayLayers.forEach((o, idx) => {
         const d = o.data;
+
         const row = document.createElement("div");
         row.className = "row";
+
         row.innerHTML = `
           <span class="tag" style="background:${cor(d.rank)}">P${d.rank}</span>
-          <div style="min-width:0;">
+
+          <div style="min-width:0; flex:1 1 auto;">
             <div class="name">${d.name || "Zona"}</div>
             <div class="meta">BBox: ${d.south}, ${d.west} → ${d.north}, ${d.east}</div>
           </div>
+
+          <div style="display:flex; gap:6px; align-items:center;">
+            <button class="miniBtn" title="Centralizar no mapa (sem selecionar)">📌</button>
+          </div>
         `;
+
+        // Clique na linha = selecionar (SOLO)
         row.onclick = () => {
           selectOverlay(idx, true);
           openDrawer(false);
         };
+
+        // Pin = só centraliza
+        const pinBtn = row.querySelector(".miniBtn");
+        pinBtn.onclick = (e) => {
+          e.stopPropagation();
+          focusOverlay(idx);
+        };
+
         drawerList.appendChild(row);
       });
     }
 
-    // Eventos UI
-    panelHeader.onclick = () => setPanelMin(!panel.classList.contains("min") ? true : false);
-    chip.onclick = () => { openDrawer(drawer.style.display !== "block"); };
+    /* =========================================================
+       Eventos de UI
+       ========================================================= */
+    panelHeader.onclick = () => setPanelMin(!panel.classList.contains("min"));
+    chip.onclick = () => openDrawer(drawer.style.display !== "block");
     drawerClose.onclick = () => openDrawer(false);
+
     btnAll.onclick = (e) => { e.stopPropagation(); showAll(); };
     btnList.onclick = (e) => { e.stopPropagation(); openDrawer(true); };
 
-    // Render overlays
+    /* =========================================================
+       Renderização dos overlays no mapa
+       ========================================================= */
     if (overlays.length === 0) {
-      // Mesmo sem overlay, mantém ponto azul e deixa chip 0
+      // Mesmo sem overlay: mantém ponto azul (se tiver), chip 0, painel minimizado
       renderChip();
       updatePreview(null);
       setPanelMin(true);
@@ -429,18 +552,22 @@
         const nome = String(o.name || ("Zona " + (idx+1)));
         const rank = Number(o.rank || (idx+1));
 
+        // validação
         if (!imgUrl || [north,south,east,west].some(v => Number.isNaN(v))) return;
 
         const data = { img: imgUrl, north, south, east, west, name: nome, rank };
-                                                                                              //OVERLAY INTENSIDADE
+
         const bounds = [[south, west], [north, east]];
-        const layer = L.imageOverlay(imgUrl, bounds, { opacity: 0.62, interactive: true })
+
+        // Overlay com opacidade "geral" por padrão
+        const layer = L.imageOverlay(imgUrl, bounds, { opacity: OPACITY_ALL, interactive: true })
           .addTo(map)
-          .on("click", () => selectOverlay(idx));
+          .on("click", () => selectOverlay(idx)); // clique na mancha = selecionar (SOLO)
 
         group.addLayer(layer);
 
-        // Tooltip/Tag no centro do bbox
+        // Tooltip marker (invisível) no centro do bbox
+        // -> não é permanent, a gente abre só quando seleciona (menos poluição)
         const cLat = (south + north) / 2;
         const cLon = (west + east) / 2;
         const html = `<span class="tag" style="background:${cor(rank)}">P${rank}</span>${nome}`;
@@ -448,7 +575,7 @@
         const tooltipMarker = L.marker([cLat, cLon], { opacity: 0 })
           .addTo(map)
           .bindTooltip(html, {
-            permanent: true,
+            permanent: false,
             direction: "center",
             className: "zone-tooltip"
           });
@@ -456,12 +583,13 @@
         overlayLayers.push({ layer, data, tooltipMarker });
       });
 
+      // UI final
       renderChip();
       buildList();
       updatePreview(null);
       setPanelMin(true);
 
-      // Ajusta o mapa para ver todas as manchas (se tiver)
+      // zoom inicial para ver todas as manchas
       if (group.getLayers().length > 0) {
         map.fitBounds(group.getBounds(), { padding: [25, 25] });
       }
@@ -469,5 +597,3 @@
   </script>
 </body>
 </html>
-
-
