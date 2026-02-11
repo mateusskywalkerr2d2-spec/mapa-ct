@@ -359,19 +359,19 @@
     function showAll(){
       selectedIndex = -1;
       overlayLayers.forEach(o => {
-        o.layer.setOpacity(0.62);
+        o.layer.setOpacity(0.62);          //TRANSPARENCIA OVERLAY
         try { o.layer.bringToBack(); } catch(e){}
       });
       updatePreview(null);
       setPanelMin(true);
     }
 
-    function selectOverlay(i, fit=false){
+    function selectOverlay(i, fit=false){  //função do overlay
       if(i < 0 || i >= overlayLayers.length) return;
       selectedIndex = i;
 
       overlayLayers.forEach((o, idx) => {
-        o.layer.setOpacity(idx === i ? 0.85 : 0.25);
+        o.layer.setOpacity(idx === i ? 0.85 : 0.03);   //Opacidade quando volta a mostrar tudo.
         if(idx === i){
           try { o.layer.bringToFront(); } catch(e){}
         }
@@ -432,7 +432,7 @@
         if (!imgUrl || [north,south,east,west].some(v => Number.isNaN(v))) return;
 
         const data = { img: imgUrl, north, south, east, west, name: nome, rank };
-
+                                                                                              //OVERLAY INTENSIDADE
         const bounds = [[south, west], [north, east]];
         const layer = L.imageOverlay(imgUrl, bounds, { opacity: 0.62, interactive: true })
           .addTo(map)
@@ -469,3 +469,4 @@
   </script>
 </body>
 </html>
+
