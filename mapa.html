@@ -1,134 +1,190 @@
-<script>
-  function getParam(name) {
-    return new URLSearchParams(window.location.search).get(name);
-  }
-  function toNum(v){
-    if(v===null || v===undefined || v==="") return NaN;
-    return Number(String(v).trim().replace(",", "."));
-  }
-  function cor(rank){
-    if(rank===1) return "#0B8043";
-    if(rank<=3) return "#6AA84F";
-    if(rank<=5) return "#F1C232";
-    if(rank<=8) return "#E69138";
-    return "#B00020";
-  }
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mapa de Cobertura LTE</title>
 
-  const msg = document.getElementById("msg");
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  // Centro opcional (vem do Power Apps)
-  const lat = toNum(getParam("lat"));
-  const lon = toNum(getParam("lon"));
+  <style>
+    html, body { margin:0; padding:0; height:100%; }
+    #map { width:100%; height:100vh; }
 
-  const map = L.map("map").setView(
-    (!isNaN(lat) && !isNaN(lon)) ? [lat, lon] : [-6.05, -50.17],
-    13
-  );
-
-  // --- Base layers (Satélite + Rua)
-  const rua = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-    maxZoom: 19
-  });
-
-  // ESRI World Imagery (satélite) — funciona bem no Leaflet
-  const sat = L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    { attribution: "Tiles © Esri", maxZoom: 19 }
-  );
-
-  // default: satélite (você pode trocar pra rua se quiser)
-  sat.addTo(map);
-
-  L.control.layers(
-    { "Satélite (Esri)": sat, "Rua (OSM)": rua },
-    null,
-    { position: "topright" }
-  ).addTo(map);
-
-  // --- 1) Tenta modo novo: ovl (lista)
-  let overlays = [];
-  const ovlParam = getParam("ovl");
-  if (ovlParam) {
-    try {
-      overlays = JSON.parse(decodeURIComponent(ovlParam));
-      if (!Array.isArray(overlays)) overlays = [];
-    } catch (e) {
-      overlays = [];
+    #msg{
+      position:fixed; left:12px; top:12px; z-index:9999;
+      background:#fff; padding:10px 12px; border-radius:12px;
+      box-shadow:0 6px 18px rgba(0,0,0,.15);
+      font-family: Arial, sans-serif; font-size:12px;
+      max-width:88%;
+      white-space: pre-line;
     }
-  }
 
-  // --- 2) Se não tiver ovl, cai pro modo antigo (1 overlay)
-  if (overlays.length === 0) {
-    const imgUrl = getParam("img");
-    const north = toNum(getParam("north"));
-    const south = toNum(getParam("south"));
-    const east  = toNum(getParam("east"));
-    const west  = toNum(getParam("west"));
-    const name  = getParam("name") || "Zona";
-
-    if (imgUrl && !isNaN(north) && !isNaN(south) && !isNaN(east) && !isNaN(west)) {
-      overlays = [{
-        img: imgUrl,
-        north, south, east, west,
-        name: decodeURIComponent(name),
-        rank: 1
-      }];
+    .zone-tooltip{
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      padding: 6px 8px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #222;
     }
-  }
+    .tag{
+      display:inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 11px;
+      color: #fff;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
 
-  if (overlays.length === 0) {
-    msg.textContent = "Sem parâmetros válidos. Use ovl=... (lista) ou img/north/south/east/west.";
-  } else {
-    // trava de segurança no HTML também
-    overlays = overlays.slice(0, 20);
+<body>
+  <div id="map"></div>
+  <div id="msg">Carregando…</div>
 
-    const group = L.featureGroup();
-    let carregadas = 0;
+  <script>
+    // Debug: se der erro JS, mostra na caixinha
+    const msg = document.getElementById("msg");
+    window.onerror = function (m, u, l, c) {
+      msg.textContent = "ERRO JS: " + m + " (linha " + l + ")";
+    };
 
-    overlays.forEach((o) => {
-      const north = Number(o.north), south = Number(o.south), east = Number(o.east), west = Number(o.west);
-      if ([north,south,east,west].some(v => Number.isNaN(v)) || !o.img) return;
+    function getParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+    function toNum(v){
+      if(v===null || v===undefined || v==="") return NaN;
+      return Number(String(v).trim().replace(",", "."));
+    }
+    function cor(rank){
+      rank = Number(rank || 0);
+      if(rank === 1) return "#0B8043";
+      if(rank <= 3) return "#6AA84F";
+      if(rank <= 5) return "#F1C232";
+      if(rank <= 8) return "#E69138";
+      return "#B00020";
+    }
 
-      const bounds = [[south, west], [north, east]];
-      const imgUrl = o.img; // aqui NÃO decodifica de novo (já veio certo do Power Apps)
-      const rank = Number(o.rank || 0);
-      const nome = String(o.name || "Zona");
+    // Centro opcional (vem do Power Apps)
+    const lat = toNum(getParam("lat"));
+    const lon = toNum(getParam("lon"));
 
-      const overlay = L.imageOverlay(imgUrl, bounds, { opacity: 0.62, interactive: true })
-        .addTo(map)
-        .on("error", () => {
-          msg.textContent = "Falhou ao carregar algum overlay (link/permissão/CORS).";
-        })
-        .on("load", () => {
-          carregadas++;
-          msg.textContent = `Overlays: ${carregadas}/${overlays.length} carregados.`;
-        });
+    // Mapa
+    const map = L.map("map").setView(
+      (!isNaN(lat) && !isNaN(lon)) ? [lat, lon] : [-6.05, -50.17],
+      13
+    );
 
-      group.addLayer(overlay);
+    // Base (rua) — simples pra teste
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+      maxZoom: 19
+    }).addTo(map);
 
-      // Tooltip central com tag P#
-      const cLat = (south + north) / 2;
-      const cLon = (west + east) / 2;
-      const html = `<span class="tag" style="background:${cor(rank)}">P${rank}</span>${nome}`;
+    // -------------------------
+    // 1) Tenta modo novo: ovl
+    // -------------------------
+    let overlays = [];
+    const ovlParam = getParam("ovl");
 
-      L.marker([cLat, cLon], { opacity: 0 })
-        .addTo(map)
-        .bindTooltip(html, { permanent: true, direction: "center", className: "zone-tooltip" });
-    });
+    if (ovlParam) {
+      try {
+        overlays = JSON.parse(decodeURIComponent(ovlParam));
+        if (!Array.isArray(overlays)) overlays = [];
+      } catch (e) {
+        overlays = [];
+        msg.textContent = "Falha ao ler ovl (JSON). Verifique EncodeUrl no Power Apps.";
+      }
+    }
 
-    // Ajusta zoom/área
-    if (group.getLayers().length > 0) {
-      map.fitBounds(group.getBounds(), { padding: [25, 25] });
-      msg.textContent = `Carregando ${overlays.length} overlay(s)…`;
+    // -------------------------
+    // 2) Fallback modo antigo
+    // -------------------------
+    if (overlays.length === 0) {
+      const imgUrl = getParam("img");
+      const north = toNum(getParam("north"));
+      const south = toNum(getParam("south"));
+      const east  = toNum(getParam("east"));
+      const west  = toNum(getParam("west"));
+      const name  = getParam("name") ? decodeURIComponent(getParam("name")) : "Zona";
+
+      if (imgUrl && !isNaN(north) && !isNaN(south) && !isNaN(east) && !isNaN(west)) {
+        overlays = [{
+          img: imgUrl,
+          north, south, east, west,
+          name,
+          rank: 1
+        }];
+      }
+    }
+
+    // -------------------------
+    // 3) Render
+    // -------------------------
+    if (overlays.length === 0) {
+      msg.textContent = "Sem parâmetros válidos. Use ovl=... (lista) ou img/north/south/east/west.";
     } else {
-      msg.textContent = "Lista ovl veio vazia/inválida.";
-    }
+      // TRAVA PRA TESTE: só 3 overlays
+      overlays = overlays.slice(0, 3);
 
-    // Marca o ponto consultado (se veio)
-    if (!isNaN(lat) && !isNaN(lon)) {
-      L.circleMarker([lat, lon], { radius: 7, weight: 2, fillOpacity: 0.9 }).addTo(map);
-    }
-  }
-</script>
+      const group = L.featureGroup();
+      let carregadas = 0;
+      msg.textContent = "Recebi " + overlays.length + " overlay(s). Carregando…";
 
+      overlays.forEach((o, idx) => {
+        const north = Number(o.north), south = Number(o.south), east = Number(o.east), west = Number(o.west);
+        const imgUrl = o.img;
+        const nome = String(o.name || ("Zona " + (idx+1)));
+        const rank = Number(o.rank || (idx+1));
+
+        if (!imgUrl || [north,south,east,west].some(v => Number.isNaN(v))) {
+          msg.textContent = "Overlay inválido detectado (faltando img ou bounds numéricos).";
+          return;
+        }
+
+        const bounds = [[south, west], [north, east]];
+
+        const overlay = L.imageOverlay(imgUrl, bounds, { opacity: 0.62, interactive: true })
+          .addTo(map)
+          .on("error", () => {
+            msg.textContent = "Falhou ao carregar algum overlay. Teste abrir a URL da imagem direto no navegador.";
+          })
+          .on("load", () => {
+            carregadas++;
+            msg.textContent = "Overlays carregados: " + carregadas + "/" + overlays.length;
+          });
+
+        group.addLayer(overlay);
+
+        // Tooltip/Tag no centro do bbox
+        const cLat = (south + north) / 2;
+        const cLon = (west + east) / 2;
+        const html = `<span class="tag" style="background:${cor(rank)}">P${rank}</span>${nome}`;
+
+        L.marker([cLat, cLon], { opacity: 0 })
+          .addTo(map)
+          .bindTooltip(html, {
+            permanent: true,
+            direction: "center",
+            className: "zone-tooltip"
+          });
+      });
+
+      // Zoom para todas
+      if (group.getLayers().length > 0) {
+        map.fitBounds(group.getBounds(), { padding: [25, 25] });
+      }
+
+      // Marca o ponto consultado (se veio)
+      if (!isNaN(lat) && !isNaN(lon)) {
+        L.circleMarker([lat, lon], { radius: 7, weight: 2, fillOpacity: 0.9 }).addTo(map);
+      }
+    }
+  </script>
+</body>
+</html>
