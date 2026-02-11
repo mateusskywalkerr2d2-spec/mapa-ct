@@ -371,7 +371,7 @@
       selectedIndex = i;
 
       overlayLayers.forEach((o, idx) => {
-        o.layer.setOpacity(idx === i ? 0.85 : 0.03);   //Opacidade quando volta a mostrar tudo.
+        o.layer.setOpacity(idx === i ? 0.85 : 0.00);   //Opacidade quando volta a mostrar tudo.
         if(idx === i){
           try { o.layer.bringToFront(); } catch(e){}
         }
@@ -469,4 +469,5 @@
   </script>
 </body>
 </html>
+
 
