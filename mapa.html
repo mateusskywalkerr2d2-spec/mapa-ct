@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <title>Mapa de Cobertura LTE</title>
 
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -13,105 +12,76 @@
     #map { width:100%; height:100vh; }
 
     /* ============================
-       PAINEL PREVIEW (recolhível)
+       Painel inferior esquerdo (simples)
        ============================ */
     #panel {
       position:fixed; left:12px; bottom:12px; z-index:9999;
-      width:320px;
+      width:340px;
       background:#fff;
       border-radius:16px;
       box-shadow:0 12px 34px rgba(0,0,0,.18);
+      border:1px solid rgba(0,0,0,.06);
       font-family: Arial, sans-serif;
       overflow:hidden;
-      border:1px solid rgba(0,0,0,.06);
     }
 
-    #panelHeader{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:10px 12px;
-      background:linear-gradient(180deg, #ffffff, #fbfbfb);
-      border-bottom:1px solid rgba(0,0,0,.06);
+    #panelBody{
+      padding:10px 12px 12px;
+    }
+
+    #panelActions{
+      display:flex; gap:8px;
+    }
+
+    .btn{
+      flex:1 1 auto;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,0.10);
+      background:#fff;
+      font-weight:800;
+      font-size:12px;
       cursor:pointer;
-      user-select:none;
     }
+    .btn:hover{ background:#f7f7f7; }
 
-    #panelHeader .left{
-      display:flex; align-items:center; gap:10px;
-      min-width:0;
+    #selectedBox{
+      margin-top:10px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,0.08);
+      background:#fbfbfb;
     }
 
     .tag{
       display:inline-block;
       padding:2px 10px;
       border-radius:999px;
-      font-weight:700;
+      font-weight:900;
       font-size:11px;
       color:#fff;
       flex:0 0 auto;
     }
 
-    #pTitle{
-      font-weight:800;
+    #selectedName{
+      font-weight:900;
       font-size:12px;
       color:#111;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
-
-    #panelHeader .chev{
-      font-size:18px;
-      color:#444;
-      line-height:1;
-      padding:4px 8px;
-      border-radius:10px;
-      background:#f2f2f2;
-    }
-
-    #panelBody{
-      padding:10px 12px 12px;
-      display:block;
-    }
-
-    #pSub{
-      margin:0 0 10px 0;
+    #selectedHint{
       font-size:11px;
-      color:#444;
-      white-space:pre-line;
+      color:#666;
+      margin-top:4px;
     }
-
-    #pImg{
-      width:100%;
-      height:165px;
-      object-fit:cover;
-      border-radius:14px;
-      border:1px solid rgba(0,0,0,0.08);
-      background:#f3f3f3;
-      display:block;
-    }
-
-    #panelActions{
-      display:flex; gap:8px; margin-top:10px;
-    }
-
-    .btn{
-      flex:1 1 auto;
-      padding:9px 10px;
-      border-radius:12px;
-      border:1px solid rgba(0,0,0,0.10);
-      background:#fff;
-      font-weight:700;
-      font-size:12px;
-      cursor:pointer;
-    }
-    .btn:hover{ background:#f7f7f7; }
-
-    /* Estado minimizado (painel vira "botão") */
-    .min #panelBody{ display:none; }
-    .min #panelHeader{ border-bottom:none; }
 
     /* ============================
-       CHIP (contador) + DRAWER LIST
+       Chip (contador) + Drawer list
        ============================ */
     #chip {
       position:fixed; right:12px; bottom:12px; z-index:9999;
@@ -120,7 +90,7 @@
       border-radius:999px;
       padding:10px 14px;
       font-family: Arial, sans-serif;
-      font-weight:800;
+      font-weight:900;
       font-size:12px;
       cursor:pointer;
       box-shadow:0 12px 34px rgba(0,0,0,.22);
@@ -129,8 +99,8 @@
 
     #drawer {
       position:fixed; right:12px; bottom:56px; z-index:9999;
-      width:340px;
-      max-height:60vh;
+      width:360px;
+      max-height:65vh;
       background:#fff;
       border-radius:16px;
       box-shadow:0 12px 34px rgba(0,0,0,.18);
@@ -151,7 +121,7 @@
 
     #drawerList{
       overflow:auto;
-      max-height:calc(60vh - 44px);
+      max-height:calc(65vh - 44px);
     }
 
     .row{
@@ -163,47 +133,64 @@
     .row:hover{ background:#f7f7f7; }
 
     .row .name{
-      font-size:12px; font-weight:800; color:#111;
+      font-size:12px;
+      font-weight:900;
+      color:#111;
       line-height:1.2;
     }
     .row .meta{
-      font-size:11px; color:#555; margin-top:2px;
+      font-size:11px;
+      color:#555;
+      margin-top:2px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      max-width:240px;
+      max-width:220px;
     }
 
-    /* botão pequeno (📌) dentro da linha */
-    .miniBtn{
-      border:none;
-      background:#f2f2f2;
-      border-radius:10px;
-      padding:6px 8px;
-      cursor:pointer;
-      font-size:14px;
-      line-height:1;
+    /* Mini preview (thumbnail) dentro da lista */
+    .thumb{
+      width:84px;
+      height:54px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,0.10);
+      object-fit:cover;
+      background:#f3f3f3;
+      flex:0 0 auto;
     }
-    .miniBtn:hover{ background:#e9e9e9; }
 
     /* ============================
-       TOOLTIP do Leaflet (tag P#)
-       - vamos mostrar só na selecionada
+       Pill clicável no mapa
        ============================ */
-    .zone-tooltip{
+    .zone-pill {
+      background: transparent;
+      border: none;
+    }
+
+    .zone-pill .pill {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
       background: rgba(255,255,255,0.95);
       border: 1px solid rgba(0,0,0,0.12);
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-      padding: 6px 8px;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.16);
       font-family: Arial, sans-serif;
       font-size: 12px;
-      color: #222;
+      font-weight: 900;
+      color:#111;
+      cursor: pointer;
+      user-select:none;
+      white-space: nowrap;
     }
-    .zone-tooltip .tag{
-      padding: 2px 8px;
-      font-size: 11px;
-      margin-right: 6px;
+
+    .zone-pill .pill .tag {
+      padding:2px 8px;
+      border-radius:999px;
+      font-weight:900;
+      font-size:11px;
+      color:#fff;
     }
   </style>
 </head>
@@ -211,32 +198,31 @@
 <body>
   <div id="map"></div>
 
-  <!-- Painel preview (recolhível) -->
-  <div id="panel" class="min">
-    <div id="panelHeader" title="Clique para expandir/recolher">
-      <div class="left">
-        <span id="pTag" class="tag" style="background:#777;">P?</span>
-        <div id="pTitle">Nenhuma zona selecionada</div>
-      </div>
-      <div class="chev" id="chev">⌃</div>
-    </div>
-
+  <!-- Painel inferior esquerdo -->
+  <div id="panel">
     <div id="panelBody">
-      <p id="pSub">Clique em uma mancha (overlay) ou escolha na lista.</p>
-      <img id="pImg" alt="Prévia do overlay" />
       <div id="panelActions">
-        <button class="btn" id="btnAll">Mostrar todas</button>
-        <button class="btn" id="btnList">Lista de zonas</button>
+        <button class="btn" id="btnAll">MOSTRAR TODAS</button>
+        <button class="btn" id="btnList">LISTA DE ZONAS</button>
+      </div>
+
+      <div id="selectedBox">
+        <span id="selTag" class="tag" style="background:#777;">P?</span>
+        <div style="min-width:0;">
+          <div id="selectedName">Nenhuma zona selecionada</div>
+          <div id="selectedHint">Clique em uma mancha no mapa ou selecione pela lista.</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Chip contador e drawer -->
+  <!-- Chip contador -->
   <div id="chip">0 zonas</div>
 
+  <!-- Drawer de zonas -->
   <div id="drawer">
     <div id="drawerHeader">
-      <div id="drawerTitle">Zonas de cobertura</div>
+      <div>Zonas de cobertura</div>
       <div style="cursor:pointer; padding:4px 8px; border-radius:10px; background:#f2f2f2;" id="drawerClose">✕</div>
     </div>
     <div id="drawerList"></div>
@@ -244,7 +230,7 @@
 
   <script>
     /* =========================================================
-       Helpers (querystring, número, cor por prioridade)
+       Helpers
        ========================================================= */
     function getParam(name) {
       return new URLSearchParams(window.location.search).get(name);
@@ -265,26 +251,20 @@
     /* =========================================================
        DOM refs
        ========================================================= */
-    const panel = document.getElementById("panel");
-    const panelHeader = document.getElementById("panelHeader");
-    const chev = document.getElementById("chev");
-    const pTag = document.getElementById("pTag");
-    const pTitle = document.getElementById("pTitle");
-    const pSub = document.getElementById("pSub");
-    const pImg = document.getElementById("pImg");
+    const btnAll = document.getElementById("btnAll");
+    const btnList = document.getElementById("btnList");
+
+    const selTag = document.getElementById("selTag");
+    const selectedName = document.getElementById("selectedName");
+    const selectedHint = document.getElementById("selectedHint");
 
     const chip = document.getElementById("chip");
     const drawer = document.getElementById("drawer");
     const drawerList = document.getElementById("drawerList");
     const drawerClose = document.getElementById("drawerClose");
 
-    const btnAll = document.getElementById("btnAll");
-    const btnList = document.getElementById("btnList");
-
     /* =========================================================
-       Inicialização do mapa
-       - Satélite + Rua (toggle)
-       - Ponto azul sempre (se vier lat/lon)
+       Map init (satélite + rua)
        ========================================================= */
     const lat = toNum(getParam("lat"));
     const lon = toNum(getParam("lon"));
@@ -304,7 +284,6 @@
       { attribution: "Tiles © Esri", maxZoom: 19 }
     );
 
-    // default: satélite (mais bonito)
     sat.addTo(map);
 
     L.control.layers(
@@ -313,7 +292,7 @@
       { position: "topright" }
     ).addTo(map);
 
-    // Ponto azul SEMPRE (mesmo fora da cobertura)
+    // Ponto azul SEMPRE (se vier lat/lon)
     if (!isNaN(lat) && !isNaN(lon)) {
       L.circleMarker([lat, lon], {
         radius: 7,
@@ -325,9 +304,7 @@
     }
 
     /* =========================================================
-       Leitura dos overlays
-       - modo novo: ovl (JSON URL-encoded)
-       - fallback: modo antigo (img,north,south,east,west,name)
+       Read overlays (ovl JSON) or fallback old single overlay
        ========================================================= */
     let overlays = [];
     const ovlParam = getParam("ovl");
@@ -360,30 +337,20 @@
     }
 
     /* =========================================================
-       Estado / estruturas
+       State / layers
        ========================================================= */
     const group = L.featureGroup();
-    const overlayLayers = []; // [{ layer, data, tooltipMarker }]
+    const overlayLayers = []; // [{ layer, data, pillMarker }]
     let selectedIndex = -1;
 
-    // Ajustes UX de opacidade
-    const OPACITY_ALL = 0.18;      // quando "Mostrar todas"
-    const OPACITY_SELECTED = 0.85; // selecionada em foco
-    const OPACITY_OTHERS = 0.0;    // SOLO: outras somem (0)
+    // Transparências (valores "antigos" bons) + SOLO
+    const OPACITY_ALL = 0.62;
+    const OPACITY_SELECTED = 0.85;
+    const OPACITY_OTHERS = 0.0; // SOLO: outros somem
 
     /* =========================================================
-       Funções de UI
+       UI helpers
        ========================================================= */
-    function setPanelMin(min){
-      if(min){
-        panel.classList.add("min");
-        chev.textContent = "⌃";
-      } else {
-        panel.classList.remove("min");
-        chev.textContent = "⌄";
-      }
-    }
-
     function openDrawer(open){
       drawer.style.display = open ? "block" : "none";
     }
@@ -392,32 +359,23 @@
       chip.textContent = `${overlayLayers.length} zona${overlayLayers.length === 1 ? "" : "s"}`;
     }
 
-    function updatePreview(data){
+    function setSelectedBox(data){
       if(!data){
-        pTag.style.background = "#777";
-        pTag.textContent = "P?";
-        pTitle.textContent = "Nenhuma zona selecionada";
-        pSub.textContent = "Clique em uma mancha (overlay) ou escolha na lista.";
-        pImg.removeAttribute("src");
+        selTag.style.background = "#777";
+        selTag.textContent = "P?";
+        selectedName.textContent = "Nenhuma zona selecionada";
+        selectedHint.textContent = "Clique em uma mancha no mapa ou selecione pela lista.";
         return;
       }
-
       const rank = Number(data.rank || 0);
-      pTag.style.background = cor(rank);
-      pTag.textContent = "P" + rank;
-      pTitle.textContent = data.name || "Zona";
-      pSub.textContent =
-        `Prioridade: P${rank}\n` +
-        `N ${data.north} | S ${data.south}\n` +
-        `E ${data.east} | W ${data.west}`;
-      pImg.src = data.img;
+      selTag.style.background = cor(rank);
+      selTag.textContent = "P" + rank;
+      selectedName.textContent = data.name || "Zona";
+      selectedHint.textContent = "Clique novamente na mesma zona (no pill) para voltar a mostrar todas.";
     }
 
     /* =========================================================
-       Mostrar todas (modo "visão geral")
-       - volta as opacidades para um valor leve
-       - limpa seleção
-       - esconde tooltips (menos poluído)
+       Show all (visão geral)
        ========================================================= */
     function showAll(){
       selectedIndex = -1;
@@ -425,24 +383,16 @@
       overlayLayers.forEach(o => {
         o.layer.setOpacity(OPACITY_ALL);
         try { o.layer.bringToBack(); } catch(e){}
-
-        // esconde tooltip
-        if (o.tooltipMarker) {
-          try { o.tooltipMarker.closeTooltip(); } catch(e){}
-        }
+        if (o.pillMarker) o.pillMarker.setOpacity(1);
       });
 
-      updatePreview(null);
-      setPanelMin(true);
+      setSelectedBox(null);
     }
 
     /* =========================================================
-       Selecionar overlay (modo SOLO)
-       - selecionada fica forte
-       - demais somem
-       - tooltip aparece só na selecionada
-       - atualiza preview
-       - (opcional) fitBounds
+       Select overlay (SOLO)
+       - só uma zona fica visível
+       - pills: só da selecionada fica visível
        ========================================================= */
     function selectOverlay(i, fit=false){
       if(i < 0 || i >= overlayLayers.length) return;
@@ -450,22 +400,15 @@
 
       overlayLayers.forEach((o, idx) => {
         o.layer.setOpacity(idx === i ? OPACITY_SELECTED : OPACITY_OTHERS);
+        if (o.pillMarker) o.pillMarker.setOpacity(idx === i ? 1 : 0);
 
         if(idx === i){
           try { o.layer.bringToFront(); } catch(e){}
-          if (o.tooltipMarker) {
-            try { o.tooltipMarker.openTooltip(); } catch(e){}
-          }
-        } else {
-          if (o.tooltipMarker) {
-            try { o.tooltipMarker.closeTooltip(); } catch(e){}
-          }
         }
       });
 
       const data = overlayLayers[i].data;
-      updatePreview(data);
-      setPanelMin(false);
+      setSelectedBox(data);
 
       if(fit){
         const b = [[Number(data.south), Number(data.west)], [Number(data.north), Number(data.east)]];
@@ -474,19 +417,8 @@
     }
 
     /* =========================================================
-       Focus (📌) - só centraliza no mapa sem selecionar
-       ========================================================= */
-    function focusOverlay(i){
-      if(i < 0 || i >= overlayLayers.length) return;
-      const d = overlayLayers[i].data;
-      const b = [[Number(d.south), Number(d.west)], [Number(d.north), Number(d.east)]];
-      map.fitBounds(b, { padding:[25,25] });
-    }
-
-    /* =========================================================
-       Drawer List
-       - clique na linha = selectOverlay + fitBounds + fecha lista
-       - 📌 = focusOverlay sem selecionar
+       Build drawer list (sem 📌)
+       - inclui thumbnail da imagem da mancha
        ========================================================= */
     function buildList(){
       drawerList.innerHTML = "";
@@ -505,22 +437,13 @@
             <div class="meta">BBox: ${d.south}, ${d.west} → ${d.north}, ${d.east}</div>
           </div>
 
-          <div style="display:flex; gap:6px; align-items:center;">
-            <button class="miniBtn" title="Centralizar no mapa (sem selecionar)">📌</button>
-          </div>
+          <img class="thumb" alt="preview" src="${d.img}">
         `;
 
-        // Clique na linha = selecionar (SOLO)
+        // clique: seleciona SOLO + zoom + fecha lista
         row.onclick = () => {
           selectOverlay(idx, true);
           openDrawer(false);
-        };
-
-        // Pin = só centraliza
-        const pinBtn = row.querySelector(".miniBtn");
-        pinBtn.onclick = (e) => {
-          e.stopPropagation();
-          focusOverlay(idx);
         };
 
         drawerList.appendChild(row);
@@ -528,23 +451,23 @@
     }
 
     /* =========================================================
-       Eventos de UI
+       UI events
        ========================================================= */
-    panelHeader.onclick = () => setPanelMin(!panel.classList.contains("min"));
+    btnAll.onclick = () => showAll();
+    btnList.onclick = () => openDrawer(true);
     chip.onclick = () => openDrawer(drawer.style.display !== "block");
     drawerClose.onclick = () => openDrawer(false);
 
-    btnAll.onclick = (e) => { e.stopPropagation(); showAll(); };
-    btnList.onclick = (e) => { e.stopPropagation(); openDrawer(true); };
-
     /* =========================================================
-       Renderização dos overlays no mapa
+       Render overlays
+       - cria overlay layer
+       - cria pill clicável (P# + nome) no centro
+       - pill faz toggle: selecionar ou voltar a mostrar todas
        ========================================================= */
     if (overlays.length === 0) {
-      // Mesmo sem overlay: mantém ponto azul (se tiver), chip 0, painel minimizado
+      // sem overlay: só UI default
       renderChip();
-      updatePreview(null);
-      setPanelMin(true);
+      setSelectedBox(null);
     } else {
       overlays.forEach((o, idx) => {
         const north = Number(o.north), south = Number(o.south), east = Number(o.east), west = Number(o.west);
@@ -552,42 +475,48 @@
         const nome = String(o.name || ("Zona " + (idx+1)));
         const rank = Number(o.rank || (idx+1));
 
-        // validação
         if (!imgUrl || [north,south,east,west].some(v => Number.isNaN(v))) return;
 
         const data = { img: imgUrl, north, south, east, west, name: nome, rank };
-
         const bounds = [[south, west], [north, east]];
 
-        // Overlay com opacidade "geral" por padrão
+        // overlay com opacidade geral por padrão
         const layer = L.imageOverlay(imgUrl, bounds, { opacity: OPACITY_ALL, interactive: true })
           .addTo(map)
-          .on("click", () => selectOverlay(idx)); // clique na mancha = selecionar (SOLO)
+          .on("click", () => selectOverlay(idx)); // clique na mancha também seleciona
 
         group.addLayer(layer);
 
-        // Tooltip marker (invisível) no centro do bbox
-        // -> não é permanent, a gente abre só quando seleciona (menos poluição)
+        // pill clicável no centro
         const cLat = (south + north) / 2;
         const cLon = (west + east) / 2;
-        const html = `<span class="tag" style="background:${cor(rank)}">P${rank}</span>${nome}`;
 
-        const tooltipMarker = L.marker([cLat, cLon], { opacity: 0 })
-          .addTo(map)
-          .bindTooltip(html, {
-            permanent: false,
-            direction: "center",
-            className: "zone-tooltip"
-          });
+        const pillIcon = L.divIcon({
+          className: "zone-pill",
+          html: `<div class="pill">
+                  <span class="tag" style="background:${cor(rank)}">P${rank}</span>
+                  <span>${nome}</span>
+                </div>`
+        });
 
-        overlayLayers.push({ layer, data, tooltipMarker });
+        const pillMarker = L.marker([cLat, cLon], {
+          icon: pillIcon,
+          interactive: true
+        }).addTo(map);
+
+        // Toggle: se clicar na mesma zona novamente, volta a mostrar todas
+        pillMarker.on("click", (e) => {
+          L.DomEvent.stopPropagation(e);
+          if (selectedIndex === idx) showAll();
+          else selectOverlay(idx, true);
+        });
+
+        overlayLayers.push({ layer, data, pillMarker });
       });
 
-      // UI final
       renderChip();
       buildList();
-      updatePreview(null);
-      setPanelMin(true);
+      setSelectedBox(null);
 
       // zoom inicial para ver todas as manchas
       if (group.getLayers().length > 0) {
