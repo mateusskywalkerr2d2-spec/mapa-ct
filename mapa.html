@@ -129,8 +129,8 @@
     if (overlays.length === 0) {
       msg.textContent = "Sem parâmetros válidos. Use ovl=... (lista) ou img/north/south/east/west.";
     } else {
-      // TRAVA PRA TESTE: só 3 overlays
-      overlays = overlays.slice(0, 3);
+      // TRAVA PRA TESTE
+      overlays = overlays.slice(0, 20);
 
       const group = L.featureGroup();
       let carregadas = 0;
@@ -188,3 +188,4 @@
   </script>
 </body>
 </html>
+
