@@ -29,7 +29,7 @@
     }
 
     /* ============================
-       CHIP ESQUERDO (controles) - parecido com o da direita
+       CHIP ESQUERDO (controles)
        ============================ */
     #leftChip {
       position:fixed; left:12px; bottom:12px; z-index:9999;
@@ -61,7 +61,7 @@
     #leftChip .miniBtn:hover{ background:rgba(255,255,255,0.22); }
 
     /* ============================
-       PAINEL DE CONTROLES (aparece/ some pelo chip esquerdo)
+       PAINEL DE CONTROLES
        ============================ */
     #panel {
       position:fixed; left:12px; bottom:56px; z-index:9999;
@@ -72,7 +72,7 @@
       border:1px solid rgba(0,0,0,.06);
       font-family: Arial, sans-serif;
       overflow:hidden;
-      display:block; /* começa visível; pode trocar pra none se quiser */
+      display:block;
     }
 
     #panelHeader{
@@ -141,7 +141,7 @@
     }
 
     /* ============================
-       DRAWER (lista de zonas) - começa aberto
+       DRAWER (lista de zonas)
        ============================ */
     #drawer {
       position:fixed; right:12px; bottom:56px; z-index:9999;
@@ -152,7 +152,7 @@
       box-shadow:0 12px 34px rgba(0,0,0,.18);
       border:1px solid rgba(0,0,0,.06);
       overflow:hidden;
-      display:block; /* começa ABERTO */
+      display:block;
       font-family: Arial, sans-serif;
     }
 
@@ -205,9 +205,8 @@
     }
 
     /* ============================
-       PILL CLICÁVEL no mapa (consertado o fundo branco)
+       PILL CLICÁVEL no mapa
        ============================ */
-    /* garante que o container do Leaflet não “engula” o estilo */
     .leaflet-marker-icon.zone-pill {
       background: transparent !important;
       border: none !important;
@@ -216,12 +215,12 @@
     .zone-pill { background: transparent; border:none; }
 
     .zone-pill .pill{
-      display:inline-flex; /* IMPORTANT: garante tamanho do fundo */
+      display:inline-flex;
       align-items:center;
       gap:8px;
       padding:8px 10px;
       border-radius:999px;
-      background: rgba(255,255,255,0.96); /* fundo branco do pill */
+      background: rgba(255,255,255,0.96);
       border: 1px solid rgba(0,0,0,0.12);
       box-shadow: 0 10px 26px rgba(0,0,0,0.16);
       font-family: Arial, sans-serif;
@@ -240,16 +239,42 @@
       font-size:11px;
       color:#fff;
     }
+
+    /* ============================
+       TOAST (feedback de copiar coords)
+       ============================ */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(17,17,17,0.92);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-family: Arial, sans-serif;
+      font-weight: 900;
+      font-size: 12px;
+      box-shadow: 0 12px 34px rgba(0,0,0,.22);
+      z-index: 10000;
+      display: none;
+      user-select: none;
+      max-width: 92vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   </style>
 </head>
 
 <body>
   <div id="map"></div>
+  <div id="toast"></div>
 
   <!-- Chip esquerdo (toggle painel de controles) -->
   <div id="leftChip">
     <span>CONTROLES</span>
-    <button class="miniBtn" id="btnTogglePanel" title="Mostrar/ocultar painel (screenshot)">📌</button>
+    <button class="miniBtn" id="btnTogglePanel" title="Mostrar/ocultar painel">📌</button>
   </div>
 
   <!-- Painel de controles -->
@@ -269,7 +294,10 @@
         <span id="selTag" class="tag" style="background:#777;">P?</span>
         <div style="min-width:0;">
           <div id="selectedName">Nenhuma zona selecionada</div>
-          <div id="selectedHint">Clique numa mancha ou no pill (P# + nome) para filtrar.</div>
+          <div id="selectedHint">
+            Clique numa mancha ou no pill (P# + nome) para filtrar.
+            <br/>Clique direito copia Lat/Lon. (SHIFT+Click também copia)
+          </div>
         </div>
       </div>
     </div>
@@ -305,6 +333,33 @@
       if(rank <= 5) return "#F1C232";
       if(rank <= 8) return "#E69138";
       return "#B00020";
+    }
+
+    function showToast(msg){
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => { t.style.display = "none"; }, 1800);
+    }
+
+    async function copyText(txt){
+      try{
+        await navigator.clipboard.writeText(txt);
+        return true;
+      }catch(e){
+        // fallback
+        try{
+          window.prompt("Copie as coordenadas:", txt);
+          return false;
+        }catch(e2){
+          return false;
+        }
+      }
+    }
+
+    function fmtCoord(v){
+      return Number(v).toFixed(9);
     }
 
     /* ============================
@@ -366,6 +421,21 @@
       }).addTo(map);
     }
 
+    // Clique direito: copia coordenadas (lat\tlon)
+    map.on("contextmenu", async (e) => {
+      const txt = `${fmtCoord(e.latlng.lat)}\t${fmtCoord(e.latlng.lng)}`;
+      await copyText(txt);
+      showToast("✅ Coordenadas copiadas: " + txt);
+    });
+
+    // SHIFT+Click: copia também
+    map.on("click", async (e) => {
+      if (!e.originalEvent || !e.originalEvent.shiftKey) return;
+      const txt = `${fmtCoord(e.latlng.lat)}\t${fmtCoord(e.latlng.lng)}`;
+      await copyText(txt);
+      showToast("✅ Coordenadas copiadas (SHIFT+Click): " + txt);
+    });
+
     /* ============================
        Overlays (ovl JSON) ou fallback single overlay
        ============================ */
@@ -388,12 +458,14 @@
       const east  = toNum(getParam("east"));
       const west  = toNum(getParam("west"));
       const name  = getParam("name") ? decodeURIComponent(getParam("name")) : "Zona";
+      const alias = getParam("alias") ? decodeURIComponent(getParam("alias")) : "";
 
       if (imgUrl && !isNaN(north) && !isNaN(south) && !isNaN(east) && !isNaN(west)) {
         overlays = [{
           img: imgUrl,
           north, south, east, west,
           name,
+          alias,
           rank: 1
         }];
       }
@@ -406,10 +478,9 @@
     const overlayLayers = []; // [{ layer, data, pillMarker }]
     let selectedIndex = -1;
 
-    // Ajustes conforme você pediu:
     // - todos: 0.60
-    // - selecionado: 0.50 (mais suave)
-    // - outros: 0 (somem)
+    // - selecionado: 0.50
+    // - outros: 0
     const OPACITY_ALL = 0.60;
     const OPACITY_SELECTED = 0.50;
     const OPACITY_OTHERS = 0.0;
@@ -430,13 +501,20 @@
         selTag.style.background = "#777";
         selTag.textContent = "P?";
         selectedName.textContent = "Nenhuma zona selecionada";
-        selectedHint.textContent = "Clique numa mancha ou no pill (P# + nome) para filtrar.";
+        selectedHint.innerHTML = "Clique numa mancha ou no pill (P# + nome) para filtrar."
+          + "<br/>Clique direito copia Lat/Lon. (SHIFT+Click também copia)";
         return;
       }
       const rank = Number(data.rank || 0);
       selTag.style.background = cor(rank);
       selTag.textContent = "P" + rank;
-      selectedName.textContent = data.name || "Zona";
+
+      if(data.alias){
+        selectedName.textContent = `${data.name || "Zona"} — ${data.alias}`;
+      } else {
+        selectedName.textContent = data.name || "Zona";
+      }
+
       selectedHint.textContent = "Clique de novo no mesmo pill para voltar a mostrar todas.";
     }
 
@@ -481,7 +559,7 @@
     }
 
     /* ============================
-       Lista (drawer) sem 📌 + thumbnail
+       Lista (drawer) + thumbnail + alias
        ============================ */
     function buildList(){
       drawerList.innerHTML = "";
@@ -496,7 +574,7 @@
           <span class="tag" style="background:${cor(d.rank)}">P${d.rank}</span>
 
           <div style="min-width:0; flex:1 1 auto;">
-            <div class="name">${d.name || "Zona"}</div>
+            <div class="name">${(d.name || "Zona")}${d.alias ? " — " + d.alias : ""}</div>
             <div class="meta">BBox: ${d.south}, ${d.west} → ${d.north}, ${d.east}</div>
           </div>
 
@@ -521,7 +599,6 @@
     chip.onclick = () => openDrawer(drawer.style.display !== "block");
     drawerClose.onclick = () => openDrawer(false);
 
-    // Fechar painel (X) e também pelo "📌" no chip esquerdo
     function togglePanel(){
       panel.style.display = (panel.style.display === "none") ? "block" : "none";
     }
@@ -534,28 +611,28 @@
     if (overlays.length === 0) {
       renderChip();
       setSelectedBox(null);
-      // drawer fica aberto, mas com 0 itens
       openDrawer(true);
     } else {
       overlays.forEach((o, idx) => {
         const north = Number(o.north), south = Number(o.south), east = Number(o.east), west = Number(o.west);
         const imgUrl = o.img;
+
         const nome = String(o.name || ("Zona " + (idx+1)));
+        const alias = String(o.alias || "");
         const rank = Number(o.rank || (idx+1));
 
         if (!imgUrl || [north,south,east,west].some(v => Number.isNaN(v))) return;
 
-        const data = { img: imgUrl, north, south, east, west, name: nome, rank };
+        const data = { img: imgUrl, north, south, east, west, name: nome, alias, rank };
         const bounds = [[south, west], [north, east]];
 
-        // overlay (opacidade geral por padrão)
         const layer = L.imageOverlay(imgUrl, bounds, { opacity: OPACITY_ALL, interactive: true })
           .addTo(map)
           .on("click", () => selectOverlay(idx));
 
         group.addLayer(layer);
 
-        // pill clicável no centro (toggle seleção)
+        // pill no centro
         const cLat = (south + north) / 2;
         const cLon = (west + east) / 2;
 
@@ -563,7 +640,7 @@
           className: "zone-pill",
           html: `<div class="pill">
                   <span class="tag" style="background:${cor(rank)}">P${rank}</span>
-                  <span>${nome}</span>
+                  <span>${nome}${alias ? " — " + alias : ""}</span>
                 </div>`
         });
 
@@ -584,11 +661,8 @@
       renderChip();
       buildList();
       setSelectedBox(null);
-
-      // drawer começa aberto (você pediu)
       openDrawer(true);
 
-      // zoom inicial pra ver todas as manchas
       if (group.getLayers().length > 0) {
         map.fitBounds(group.getBounds(), { padding: [25,25] });
       }
